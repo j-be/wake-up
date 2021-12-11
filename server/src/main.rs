@@ -14,6 +14,7 @@ extern crate serde_derive;
 use dotenv::dotenv;
 
 use rocket::routes;
+use rocket_cors::AllowedOrigins;
 
 mod api_handler;
 mod domain;
@@ -33,5 +34,12 @@ fn main() {
                 api_handler::post_device,
          ])
         .attach(api_handler::WakeUpDbConn::fairing())
+        .attach(rocket_cors::CorsOptions::default()
+            .allowed_origins(AllowedOrigins::some_exact(&[
+                "http://localhost:8080",
+                "https://owly.duckdns.org",
+            ]))
+            .to_cors()
+            .expect("Error while configuring CORS"))
         .launch();
 }
