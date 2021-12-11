@@ -24,13 +24,13 @@ import { Options, Vue } from 'vue-class-component';
 
 @Options({
   created() {
-    fetch("http://localhost:8001/wake-up/api/devices")
+    fetch(`${process.env.VUE_APP_BACKEND_URL}/wake-up/api/devices`)
         .then(response => response.json())
         .then(devices => this.devices = devices);
   },
   methods: {
     awake(name: string): void {
-      fetch(`http://localhost:8001/wake-up/api/awake/${name}`)
+      fetch(`${process.env.VUE_APP_BACKEND_URL}/wake-up/api/awake/${name}`)
           .then(response => response.json())
           .then(console.log);
     }
