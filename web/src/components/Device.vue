@@ -4,7 +4,7 @@
       <div class="card">
         <div class="card-content">
           <span class="card-title">
-            {{ device.name }}
+            <strong>{{ device.name }}</strong>
           </span>
           <p>
             {{ device.mac }}

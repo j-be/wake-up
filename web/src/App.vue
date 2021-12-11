@@ -23,6 +23,13 @@ import DeviceList from '@/components/Device.vue';
 export default class App extends Vue {}
 </script>
 <style lang="sass">
-body
-  background-color: #fff
+
+$card-bg-color: #1e1e1e
+$off-black: #fff
+
+@import '../node_modules/materialize-css/sass/materialize'
+
+html
+  background-color: #121212
+
 </style>
