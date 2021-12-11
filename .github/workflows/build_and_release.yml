@@ -1,0 +1,121 @@
+name: Build and release
+
+on:
+  push:
+    branches:
+      - "ci"
+    tags:
+      - "*"
+
+jobs:
+  wake-up-server-armv7:
+    runs-on: ubuntu-20.04
+
+    steps:
+      - name: Install dependencies
+        run: sudo apt-get install apt-transport-https ca-certificates curl gnupg lsb-release
+
+      - name: Install Docker
+        run: |
+          curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+          echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+          sudo apt-get update
+          sudo apt-get install docker-ce docker-ce-cli containerd.io
+
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Build wake-up server
+        run: |
+          cd server
+          docker build -t wake-up-build -f docker/armv7/Dockerfile .
+          docker create --name wake-up wake-up-build
+          docker cp wake-up:/app/target/armv7-unknown-linux-gnueabihf/release/wake-up ./wake-up
+          docker rm wake-up
+
+      - name: Upload wake-up server
+        uses: actions/upload-artifact@v1
+        with:
+          path: server/wake-up
+          name: wake-up_server_armv7
+
+  wake-up-web:
+    runs-on: ubuntu-20.04
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v1
+
+      - name: Install dependencies
+        run: sudo apt-get install zip
+
+      - name: Setup Node
+        uses: actions/setup-node@v2
+        with:
+          node-version: '16'
+
+      - name: npm install
+        run: |
+          cd web
+          npm install
+          npm run build --prod
+
+      - name: ZIP the package
+        run: |
+          cd web/dist
+          zip -r wake-up-web wake-up-web
+
+      - name: Upload wake-up-web.zip
+        uses: actions/upload-artifact@v1
+        with:
+          path: web/dist/wake-up-web.zip
+          name: wake-up-web.zip
+
+  release:
+    runs-on: ubuntu-20.04
+    if: ${{ startsWith(github.ref, 'refs/tags') }}
+
+    needs: [wake-up-server-armv7, wake-up-web]
+
+    steps:
+    - name: Download wake-up_server_armv7 binary
+      uses: actions/download-artifact@v1
+      with:
+        name: wake-up_server_armv7
+
+    - name: Download wake-up Web bundle
+      uses: actions/download-artifact@v1
+      with:
+        name: wake-up-web.zip
+        path: ./
+
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1.0.0
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ github.ref }}
+        draft: false
+        prerelease: false
+
+    - name: Attach server armv7 binary to release
+      uses: actions/upload-release-asset@v1.0.1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: wake-up_server_armv7/wake-up_server
+        asset_name: wake-up_server_armhf
+        asset_content_type: application/octet-stream
+
+    - name: Attach web ui to release
+      uses: actions/upload-release-asset@v1.0.1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: wake-up-web.zip
+        asset_name: wake-up-web.zip
+        asset_content_type: application/zip
