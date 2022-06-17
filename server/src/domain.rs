@@ -1,6 +1,6 @@
 use crate::schema::devices;
 
-#[derive(Identifiable, Queryable, Serialize)]
+#[derive(Identifiable, Queryable, Serialize, Debug)]
 pub struct Device {
     pub id: i32,
     pub name: String,

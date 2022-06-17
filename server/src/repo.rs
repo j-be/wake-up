@@ -31,9 +31,10 @@ pub fn create_device(conn: &PgConnection, new_device: InsertDevice) -> Device {
     return result.expect("Error saving new Node");
 }
 
-pub fn get_device_by_name(conn: &PgConnection, name: &str) -> Device {
+pub fn get_device_by_name(conn: &PgConnection, name: &str) -> Option<Device> {
     return devices::dsl::devices
-        .filter(devices::name.eq(name))
+        .filter(devices::name.eq(&name))
         .first(conn)
-        .expect("Error loading all devices");
+        .optional()
+        .expect(format!("Error loading device {}", name).as_str());
 }

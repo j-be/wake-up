@@ -9,14 +9,16 @@ use rocket::http::RawStr;
 pub struct WakeUpDbConn(diesel::PgConnection);
 
 #[get("/awake/<name>")]
-pub fn awake(conn: WakeUpDbConn, name: &RawStr) -> Json<Device> {
-    let device = repo::get_device_by_name(&*conn, name);
-
-    wakey::WolPacket::from_string(device.mac.as_str(), ':')
-        .send_magic_to(SocketAddr::from(([0,0,0,0], 0)), SocketAddr::from(([255,255,255,255], 9)))
-        .expect(format!("Error while sending magic packet for {}", name).as_str());
-
-    return Json(device);
+pub fn awake(conn: WakeUpDbConn, name: &RawStr) -> Json<Option<Device>> {
+    match repo::get_device_by_name(&*conn, name) {
+        Some(device) => {
+            wakey::WolPacket::from_string(device.mac.as_str(), ':')
+                .send_magic_to(SocketAddr::from(([0,0,0,0], 0)), SocketAddr::from(([255,255,255,255], 9)))
+                .expect(format!("Error while sending magic packet for {:?}", device).as_str());
+            Json(Some(device))
+        },
+        _ => Json(None)
+    }
 }
 
 #[get("/devices")]
