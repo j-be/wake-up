@@ -1,16 +1,16 @@
-use rocket_contrib::json::Json;
 use wakey;
 use std::net::SocketAddr;
 use crate::domain::{Device, InsertDevice};
 use crate::repo;
-use rocket::http::RawStr;
+use rocket::serde::json::Json;
+use rocket_sync_db_pools::{database, diesel};
 
 #[database("wakeup_db")]
 pub struct WakeUpDbConn(diesel::PgConnection);
 
 #[get("/awake/<name>")]
-pub fn awake(conn: WakeUpDbConn, name: &RawStr) -> Json<Option<Device>> {
-    match repo::get_device_by_name(&*conn, name) {
+pub async fn awake(conn: WakeUpDbConn, name: String) -> Json<Option<Device>> {
+    match conn.run(move |c| repo::get_device_by_name(c, name)).await {
         Some(device) => {
             wakey::WolPacket::from_string(device.mac.as_str(), ':')
                 .send_magic_to(SocketAddr::from(([0,0,0,0], 0)), SocketAddr::from(([255,255,255,255], 9)))
@@ -22,11 +22,11 @@ pub fn awake(conn: WakeUpDbConn, name: &RawStr) -> Json<Option<Device>> {
 }
 
 #[get("/devices")]
-pub fn get_devices(conn: WakeUpDbConn) -> Json<Vec<Device>> {
-    return Json(repo::get_devices(&*conn));
+pub async fn get_devices(conn: WakeUpDbConn) -> Json<Vec<Device>> {
+    return conn.run(|c| Json(repo::get_devices(c))).await;
 }
 
 #[post("/devices", data = "<new_device>")]
-pub fn post_device(conn: WakeUpDbConn, new_device: Json<InsertDevice>) -> Json<Device> {
-    return Json(repo::create_device(&*conn, new_device.into_inner()));
+pub async fn post_device(conn: WakeUpDbConn, new_device: Json<InsertDevice>) -> Json<Device> {
+    return conn.run(move |c| Json(repo::create_device(c, new_device.into_inner()))).await;
 }

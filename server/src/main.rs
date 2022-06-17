@@ -1,11 +1,7 @@
-#![feature(proc_macro_hygiene, decl_macro)]
-
 #[macro_use]
 extern crate diesel;
 #[macro_use]
 extern crate rocket;
-#[macro_use]
-extern crate rocket_contrib;
 #[macro_use]
 extern crate diesel_migrations;
 #[macro_use]
@@ -21,13 +17,14 @@ mod domain;
 mod repo;
 mod schema;
 
-fn main() {
+#[launch]
+fn rocket() -> _ {
     dotenv().ok();
 
     repo::migrate();
 
     println!("Start");
-    rocket::ignite()
+    rocket::build()
         .mount("/wake-up/api/", routes![
                 api_handler::awake,
                 api_handler::get_devices,
@@ -41,5 +38,4 @@ fn main() {
             ]))
             .to_cors()
             .expect("Error while configuring CORS"))
-        .launch();
 }

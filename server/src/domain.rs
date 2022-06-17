@@ -8,8 +8,9 @@ pub struct Device {
 }
 
 #[derive(Insertable, Deserialize)]
+#[serde(crate = "rocket::serde")]
 #[table_name="devices"]
-pub struct InsertDevice<'a> {
-    pub name: &'a str,
-    pub mac: &'a str,
+pub struct InsertDevice {
+    pub name: String,
+    pub mac: String,
 }

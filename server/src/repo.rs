@@ -26,12 +26,12 @@ pub fn get_devices(conn: &PgConnection) -> Vec<Device> {
 
 pub fn create_device(conn: &PgConnection, new_device: InsertDevice) -> Device {
     let result = diesel::insert_into(devices::table)
-        .values(&new_device)
+        .values(new_device)
         .get_result(conn) as QueryResult<Device>;
     return result.expect("Error saving new Node");
 }
 
-pub fn get_device_by_name(conn: &PgConnection, name: &str) -> Option<Device> {
+pub fn get_device_by_name(conn: &PgConnection, name: String) -> Option<Device> {
     return devices::dsl::devices
         .filter(devices::name.eq(&name))
         .first(conn)
